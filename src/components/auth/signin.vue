@@ -5,7 +5,8 @@
         <div class="card card-signin my-5">
           <div class="card-body">
             <h5 class="card-title text-center">Sign In</h5>
-            <h6 class="text-center success" v-show="signUp.status == 200">{{signUp.msg}}</h6>
+            <h6 class="text-center success" v-if="signUp.status == 200">{{signUp.msg}}</h6>
+            <h6 class="text-center error" v-if="siginform.status == 404">{{siginform.error}}</h6>
             <form class="form-signin" @submit.prevent="doSigin">
               <div class="form-group">
                 <label for="username">Email address</label>
@@ -63,7 +64,10 @@ export default {
         return {
             siginform: {
                 username: null,
-                password: null
+                password: null,
+                status: 200,
+                msg: 'success',
+                error: 'Your account or password is incorrect.'
             },
             registerform: {
                 name:null,
@@ -86,7 +90,22 @@ export default {
             event.preventDefault();
             let loginObj = this.siginform
             // compire this with localstorge data
-            let userList = localStorage.getItem('users');
+            let userList = localStorage.getItem('users') ? localStorage.getItem('users') : null;
+            if (userList !== null) {
+                userList = JSON.parse(userList);
+                let res = userList.filter((iterator) => {
+                    return (iterator.email === loginObj.username && iterator.password === loginObj.password) ? true : false;
+                })
+                if (res.length > 0) {
+                    // success login
+                    localStorage.setItem('session', true)
+                    this.$router.push('/notes')
+                } else{
+                    this.siginform.status = 404;
+                }
+            } else {
+                alert('Please register');
+            }
         },
         toRegister() {
             if (this.form === 1) {
@@ -159,5 +178,9 @@ label {
 .success {
     font-size: 16px;
     color: #3CA300;
+}
+.error{
+    font-size: 14px;
+    color: #B64A00;
 }
 </style>

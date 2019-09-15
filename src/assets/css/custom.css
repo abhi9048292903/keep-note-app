@@ -1825,32 +1825,32 @@ html {
     border-color: #cccccc;
   }
   .btn-default .badge {
-    color: #ffffff;
+    color: #F6F9FF;
     background-color: #333333;
   }
   .btn-primary {
-    color: #ffffff;
-    background-color: #337ab7;
-    border-color: #2e6da4;
+    color: #F6F9FF;
+    background-color: #008000;
+    border-color: #008000;
   }
   .btn-primary:focus,
   .btn-primary.focus {
-    color: #ffffff;
+    color: #F6F9FF;
     background-color: #286090;
     border-color: #122b40;
   }
   .btn-primary:hover {
-    color: #ffffff;
-    background-color: #286090;
-    border-color: #204d74;
+    color: #F6F9FF;
+    background-color: #3CA300;
+    border-color: #3CA300;
   }
   .btn-primary:active,
   .btn-primary.active,
   .open > .dropdown-toggle.btn-primary {
-    color: #ffffff;
-    background-color: #286090;
+    color: #F6F9FF;
+    background-color: #005E00;
     background-image: none;
-    border-color: #204d74;
+    border-color: #005E00;
   }
   .btn-primary:active:hover,
   .btn-primary.active:hover,
