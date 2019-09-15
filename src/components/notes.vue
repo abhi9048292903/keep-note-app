@@ -40,7 +40,7 @@
                                 <div class="form-group edit-field" @click="initTakeNote" >
                                     <input v-model="noteId" hidden>
                                     <div class="form-group">
-                                        <input class="form-control" type="text" placeholder="Title" v-model="takeNote.title" @focus="onFocus = true">
+                                        <input class="form-control" type="text" :placeholder="(onFocus ? 'Title': 'Take a note...')" v-model="takeNote.title" @focus="onFocus = true">
                                     </div>
                                     <div v-if="onFocus">
                                         <input class="form-control" type="textarea" placeholder="Take a note..." v-model="takeNote.note">
