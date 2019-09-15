@@ -68,8 +68,12 @@
                     </article>
                     <article class="row">
                         <section class="container">
-                            <div class="wrapper-notes col-md-9" v-if="notesList.length > 0">
+                            <div class="wrapper-notes col-md-9" v-if="notesList.length > 0" @click="noteClickEvent">
                                 <div class="col-md-3 col-sm-6 note-card" v-bind:key="`${note.id}_${ind}`" v-for="(note, ind) in notesList">
+                                    <div :class="(note.status ? 'tick active': 'tick')">
+                                        <input type="checkbox" hidden class="note-check" :id="note.id">
+                                        <label :for="note.id" title="Mark as done" :data-id="note.id" :data-index="ind"></label>
+                                    </div>
                                     <div class="title">{{note.title}}</div>
                                     <p>{{note.note}}</p>
                                     <a :href="note.link">{{note.link}}</a>
@@ -239,7 +243,9 @@ export default {
             event.preventDefault();
             this.onFocus = false;
             if(this.noteId != null){
-                this.saveNote(this, 'user-out-focus')
+                if (this.takeNote.title != null || this.takeNote.note != null) {
+                    this.saveNote(this, 'user-out-focus')
+                }
             }
         },
         logOut (event) {
@@ -262,6 +268,26 @@ export default {
                     this.baseNotesList = _list;
                 }
             }
+        },
+        noteClickEvent (event) {
+            event.preventDefault();
+            let target = event.target
+            if (target.tagName !== 'LABEL'){
+                return;
+            }
+            let noteId = target.getAttribute('data-id');
+            let index = target.getAttribute('data-index')
+            this.notesList[index].status = true;
+            // save to local
+            let fullList = localStorage.getItem('notes') ? JSON.parse(localStorage.getItem('notes')) : null;
+            if (fullList !== null) {
+                if (fullList.hasOwnProperty(this.user.id)){
+                    fullList[this.user.id] = this.notesList
+                    localStorage.setItem('notes', JSON.stringify(fullList))
+                   
+                }
+            }
+
         }
     }
   
@@ -320,6 +346,7 @@ ul{
     background-color: #feefc3;
 }
 .note-card {
+    position: relative;
     padding: 16px;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
@@ -342,6 +369,34 @@ ul{
     font-size: 13px;
     text-overflow: ellipsis;
     text-decoration: none;
+}
+.note-card .tick {
+    position: absolute;
+    left: -5px;
+    top: -10px;
+    display: none;
+}
+.note-card .tick label{
+    cursor: pointer;
+    text-align: center;
+    height: 16px;
+    width: 16px;
+    border-radius: 50%;
+    background-color: #2E3036;
+    color: #F6F9FF;
+}
+.note-card .tick.active label {
+    background-color: #008000;
+    color: #fff;
+}
+.note-card .tick.active{
+    display: block;
+}
+.note-card .tick label::after{
+    content: "\2713";
+}
+.note-card:hover .tick{
+   display: block;
 }
 .edit-field {
     border: 1px solid #e0e0e0;
