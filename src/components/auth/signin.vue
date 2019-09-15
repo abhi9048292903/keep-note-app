@@ -98,7 +98,7 @@ export default {
                 })
                 if (res.length > 0) {
                     // success login
-                    localStorage.setItem('session', true)
+                    localStorage.setItem('session', JSON.stringify(res[0]))
                     this.$router.push('/notes')
                 } else{
                     this.siginform.status = 404;
@@ -120,9 +120,13 @@ export default {
         },
         doSignUp(event){
             try {
-                let newUser = new Object()
+                let date = new Date()
+                let newUser = {
+                    id: `kNU_${date.getTime()}`
+                }
                 Object.assign(newUser, this.registerform);
                 delete newUser.confirm
+                Object.freeze(newUser);
                 var success = false
                 if (localStorage.getItem('users')) {
                     let fullUser = localStorage.getItem('users');

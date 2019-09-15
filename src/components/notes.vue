@@ -5,6 +5,9 @@
              <a class="navbar-brand" href="#">Notes</a>
             <div class="collapse navbar-collapse">
                 <ul class=" navbar-nav mr-auto pull-right">
+                    <li class="li-padding">
+                         <a href="">Hello {{user.name}}</a>
+                    </li>
                     <li class="li-padding" @click="logOut">
                          <a href="">Log out</a>
                     </li>
@@ -87,11 +90,20 @@ export default {
                 status: false
             },
             noteId: null,
-            onFocus: false
+            onFocus: false,
+            user: {}
         }
     },
     mounted () {
-        this.notesList = localStorage.getItem('notes') ? JSON.parse(localStorage.getItem('notes')) : [];
+        if (localStorage.getItem('session') != null) {
+            this.user = JSON.parse(localStorage.getItem('session'))
+            let fullList = localStorage.getItem('notes') ? JSON.parse(localStorage.getItem('notes')) : null;
+            if (fullList !== null) {
+                if (fullList.hasOwnProperty(this.user.id)){
+                    this.notesList  = fullList[this.user.id];
+                }
+            }
+        }
     },
     watch: {
         takeNote: {
@@ -113,29 +125,44 @@ export default {
             let notes = localStorage.getItem('notes') ? localStorage.getItem('notes') : null
             if(notes != null) {
                 notes = JSON.parse(notes);
-                function isExist(element) {
-                    return element.id === self.noteId;
-                }
-                let index = notes.findIndex(isExist)
-                if(index > -1) {
-                    Object.assign(notes[index], self.takeNote);
-                    notes = JSON.stringify(notes)
-                    localStorage.setItem('notes', notes);
-                } else {
-                    // not exists new
-                    let newNote = {
-                        id: self.noteId
+                if (notes.hasOwnProperty(self.user.id)) {
+                    let user_notes = notes[self.user.id];
+                    function isExist(element) {
+                        return element.id === self.noteId;
                     }
-                    Object.assign(newNote, self.takeNote);
-                    notes.push(newNote);
+                    let index = user_notes.findIndex(isExist)
+                    if(index > -1) {
+                        Object.assign(user_notes[index], self.takeNote);
+                        notes[self.user.id] = user_notes 
+                        notes = JSON.stringify(notes)
+                        localStorage.setItem('notes', notes);
+                    } else {
+                        // not exists new
+                        let newNote = {
+                            id: self.noteId
+                        }
+                        Object.assign(newNote, self.takeNote);
+                        user_notes.push(newNote);
+                        notes[self.user.id] =  user_notes
+                        notes = JSON.stringify(notes)
+                        localStorage.setItem('notes', notes);
+                    }
+                } else {
+                    notes[self.user.id] = [];
+                    let freshNote = [];
+                    freshNote.push(Object.assign({id: self.noteId}, self.takeNote))
+                    notes[self.user.id] = freshNote 
                     notes = JSON.stringify(notes)
                     localStorage.setItem('notes', notes);
                 }
             } else {
+                let notes = {}
+                notes[self.user.id] = [];
                 let freshNote = [];
                 freshNote.push(Object.assign({id: self.noteId}, self.takeNote))
-                freshNote = JSON.stringify(freshNote)
-                localStorage.setItem('notes', freshNote);
+                notes[self.user.id] = freshNote 
+                notes = JSON.stringify(notes)
+                localStorage.setItem('notes', notes);
             }
         },
         onChange (foo, delay) {
