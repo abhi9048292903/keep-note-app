@@ -13,7 +13,7 @@
                     </li>
                 </ul>
                 <form class="form-inline my-pad my-lg-0" @submit.prevent="searchNotes">
-                    <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search">
+                    <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search notes" v-model="searchInput" v-on:keyup="searchNotes">
                 </form>
             </div>
             
@@ -40,19 +40,27 @@
                                 <div class="form-group edit-field" @click="initTakeNote" >
                                     <input v-model="noteId" hidden>
                                     <div class="form-group">
-                                        <input class="form-control" type="text" placeholder="Title" v-model="takeNote.title" @focus="onFocus = true" @blur="onFocus = false">
+                                        <input class="form-control" type="text" placeholder="Title" v-model="takeNote.title" @focus="onFocus = true">
                                     </div>
-                                    <div>
+                                    <div v-if="onFocus">
                                         <input class="form-control" type="textarea" placeholder="Take a note..." v-model="takeNote.note">
-                                    </div>
-                                    <div class="form-group">
-                                        <section>
-                                            <div class="row">
-                                                <div class="col-sm-1">
-
+                                        <div class="form-group" style="margin-top: 8px; margin-bottom:8px;">
+                                            <section>
+                                                <div class="row">
+                                                    <div class="container pd-12">
+                                                        <div class="col-md-1" v-if="!linkInput">
+                                                            <button class="btn btn-default btn-xs" @click="linkInput = true">
+                                                                 Add link
+                                                            </button>
+                                                        </div>
+                                                        <div class="col-md-3" v-if="linkInput">
+                                                            <input style="border:1px solid #F1F1F1; padding:0 4px; border-radius:3px; font-size:12px;" type="text" v-model="takeNote.link" placeholder="Note link">
+                                                        </div>
+                                                        
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </section>
+                                            </section>
+                                        </div>
                                     </div>
                                 </div>
                             </form>
@@ -62,8 +70,9 @@
                         <section class="container">
                             <div class="wrapper-notes col-md-9" v-if="notesList.length > 0">
                                 <div class="col-md-3 col-sm-6 note-card" v-bind:key="`${note.id}_${ind}`" v-for="(note, ind) in notesList">
-                                    <div>{{note.title}}</div>
+                                    <div class="title">{{note.title}}</div>
                                     <p>{{note.note}}</p>
+                                    <a :href="note.link">{{note.link}}</a>
                                 </div>
                             </div>
                         </section>                
@@ -80,6 +89,7 @@
 export default {
     data () {
         return {
+            baseNotesList: [],
             notesList: [],
             takeNote: {
                 title: null,
@@ -91,35 +101,70 @@ export default {
             },
             noteId: null,
             onFocus: false,
-            user: {}
+            user: {},
+            linkInput: false,
+            searchInput: null
         }
     },
     mounted () {
         if (localStorage.getItem('session') != null) {
             this.user = JSON.parse(localStorage.getItem('session'))
-            let fullList = localStorage.getItem('notes') ? JSON.parse(localStorage.getItem('notes')) : null;
-            if (fullList !== null) {
-                if (fullList.hasOwnProperty(this.user.id)){
-                    this.notesList  = fullList[this.user.id];
-                }
-            }
+            this.fetchData();
         }
+    },
+    created() {
+        let self = this
+        this.$root.$on('save-after-out-focus', function() {
+            self.noteId = null
+            self.takeNote = {
+                title: null,
+                note: null,
+                link: null,
+                image: null,
+                map: null,
+                status: false
+            }
+            self.linkInput = false;
+            self.fetchData();
+        })
     },
     watch: {
         takeNote: {
             self: this,
-            handler: function (_changeObject, __previous) {
+            handler: function (__previous, _changeObject) {
                 let self = this
+                if (_changeObject.name == null && _changeObject.title == null) {
+                    return;
+                }
                 self.onChange(self.saveNote, 3000)();
+
             },
             deep: true
+        },
+        searchInput: function(_val){
+            if (_val != null && _val !== ""){
+                this.onChange(this.searchNotes, 400)();
+            } else {
+                this.notesList = this.baseNotesList.slice()
+            }
         }
     },
     methods: {
         searchNotes () {
+            let _searchText = this.searchInput != null ? this.searchInput.toLowerCase() : null
+            this.notesList = this.notesList.filter((note) => {
+                if(note.title != null || note.note != null){
+                    let title = note.title != null ? note.title : '';
+                    let text = note.note != null ? note.note : ''
+                    return title.toLowerCase().includes(_searchText) || text.toLowerCase().includes(_searchText);
+                }
+            })
+            if (_searchText == null || this.searchInput == null) {
+                this.notesList = this.baseNotesList.slice();
+            }
 
         },
-        saveNote (context) {
+        saveNote (context, when) {
             // save notes to local storage
             let self = this
             let notes = localStorage.getItem('notes') ? localStorage.getItem('notes') : null
@@ -164,6 +209,9 @@ export default {
                 notes = JSON.stringify(notes)
                 localStorage.setItem('notes', notes);
             }
+            if (when === 'user-out-focus') {
+                this.$root.$emit('save-after-out-focus', 'fetch')
+            }
         },
         onChange (foo, delay) {
             let self = this
@@ -189,21 +237,31 @@ export default {
         },
         editOutFocus () {
             event.preventDefault();
+            this.onFocus = false;
             if(this.noteId != null){
-                this.noteId = null
-                this.takeNote = {
-                    title: null,
-                    note: null,
-                    link: null,
-                    image: null,
-                    map: null,
-                    status: false
-                }
+                this.saveNote(this, 'user-out-focus')
             }
         },
         logOut (event) {
             localStorage.removeItem('session')
             this.$router.push('/login')
+        },
+        fetchData () {
+            let fullList = localStorage.getItem('notes') ? JSON.parse(localStorage.getItem('notes')) : null;
+            if (fullList !== null) {
+                if (fullList.hasOwnProperty(this.user.id)){
+                    let _list  = fullList[this.user.id];
+                    _list = _list.filter((iterator)=>{
+                        return iterator.id !== null
+                    })
+                    this.notesList = _list.sort(function(a, b){
+                        if (a.id != null && b.id != null) {
+                            return b.id.split('_')[0] - a.id.split('_')[0]
+                        }
+                    })
+                    this.baseNotesList = _list;
+                }
+            }
         }
     }
   
@@ -229,6 +287,9 @@ ul{
 }
 .li-padding{
     padding: 12px 6px;
+}
+.pd-12{
+    padding-left: 12px;
 }
 .bg-dark {
     height: 50px;
@@ -259,14 +320,28 @@ ul{
     background-color: #feefc3;
 }
 .note-card {
-    padding: 8px;
+    padding: 16px;
     border: 1px solid #e0e0e0;
     border-radius: 5px;
     min-height: 116px;
     margin: 16px;
+    cursor: pointer;
 }
 .note-card:hover{
-    box-shadow: 0 2px 2px 0 #f1f1f1;
+    box-shadow: 0 4px 4px 0 #f1f1f1;
+}
+.note-card .title {
+    font-size: 24px;
+    font-weight: 600;
+}
+.note-card p{
+    margin: 2px 0;
+}
+.note-card a {
+    color: #0070DC;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    text-decoration: none;
 }
 .edit-field {
     border: 1px solid #e0e0e0;
@@ -283,5 +358,8 @@ ul{
     outline: 0;
     -webkit-box-shadow: none;
     box-shadow: none;
+}
+.edit-field .form-group{
+    margin-bottom: 0;
 }
 </style>
